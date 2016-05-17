@@ -1,0 +1,22 @@
+{
+  "manifest_version": 2,
+
+  "name": "Getting started example",
+  "description": "Mock extension",
+  "version": "1.0",
+
+  "permissions": [
+    "identity"
+  ],
+
+  "oauth2": {
+    "client_id": "113507873524-6masu5nna9sckbvqa3jk13alvqakb38h.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/spreadsheets"
+    ]
+  },
+
+  "browser_action": {
+    "default_popup": "popup.html"
+  }
+}
