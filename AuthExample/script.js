@@ -1,18 +1,3 @@
-// chrome.identity.getAuthToken({ 'interactive': true }, function(token) {
-//   console.log(token);
-
-//   var httpStr = 'https://spreadsheets.google.com/feeds/cells/1Ir0bSQ91yYrfAeYcZVQK3EJSvZkjtOcpMkb_BwY4AXE/omxooju/private/full?access_token=' + token;
-//   $.ajax({
-//   	url: httpStr,
-//   	type: 'GET',
-//   	dataType: 'jsonp',
-//   	cache: false,
-//   	success: function(response) {
-//   		console.log(response);
-//   	}
-//   });
-// });
-
 var getWorksheetInfo = function(url) {
     var urlRegex = /.*docs\.google\.com\/spreadsheets\/d\/(.*)\/.*gid=(\d*).*/g;
     var searchResults = urlRegex.exec(url);
@@ -28,8 +13,55 @@ var getWorksheetInfo = function(url) {
     return toReturn;
 }
 
-var spreadsheetDataHandler = function(spreadsheetXML) {
-    console.log(spreadsheetXML);
+var getPageIdAPI = function(pageLink) {
+    var regex = /.*\/private\/full\/(.*)/g;
+    var searchResults = regex.exec(pageLink);
+
+    var pageId = "";
+    if(searchResults) {
+        pageId = searchResults[1];
+    }
+
+    return pageId;
+}
+
+var cellsDataHandler = function(cellsXML) {
+    var cells = $(cellsXML).find('entry').find('content[type="text"]');
+    var cellsTexts = [];
+    for(var i = 0; i < cells.length; ++i) {
+        cellsTexts.push(cells[i].innerText);
+    }
+    
+    console.log(cellsTexts);
+}
+
+var workWithPage = function(spreadsheetId, pageId, tokenAPI) {
+    var cellsDataApiCall = 'https://spreadsheets.google.com/feeds/cells/' +
+                           spreadsheetId + '/' +
+                           pageId + '/private/full' +
+                           '?access_token=' + tokenAPI;
+
+    $.ajax({
+        url: cellsDataApiCall,
+        type: 'GET',
+        dataType: 'jsonp',
+        cache: false,
+        success: cellsDataHandler
+    });
+}
+
+var spreadsheetDataHandler = function(worksheetInfo, tokenAPI) {
+    // return curried function that knows worksheetInfo
+    return function(spreadsheetXML) {
+        $(spreadsheetXML).find('entry').each(function() {
+            var hrefWithPageNumberId = $(this).find('link[type="text/csv"]').attr('href');
+            if(getWorksheetInfo(hrefWithPageNumberId).pageId === worksheetInfo.pageId) {
+                var entryLink = $(this).find('id')[0].innerText;
+                var pageIdAPI = getPageIdAPI(entryLink);
+                workWithPage(worksheetInfo.spreadsheetId, pageIdAPI, tokenAPI);
+            }
+        });
+    }
 }
 
 var workWithWorksheet = function(worksheetInfo) {
@@ -43,7 +75,7 @@ var workWithWorksheet = function(worksheetInfo) {
             type:     'GET',
             dataType: 'jsonp',
             cache:    false,
-            success:  spreadsheetDataHandler
+            success:  spreadsheetDataHandler(worksheetInfo, token)
         });
     });
 }
