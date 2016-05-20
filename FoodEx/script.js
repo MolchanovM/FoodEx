@@ -1,56 +1,55 @@
 function getServiceName(link) {
     var serviceRegex = /http(?:s?):\/\/([^\/]+)\//;
     var searchResults = serviceRegex.exec(link);
-    if(searchResults) {
+    if (searchResults) {
         return searchResults[1];
     }
 }
 
-function worker(arr, linkHandler) {
-    var arrayIdx = 0;
-    var makeOneOrder = function() {
-        if(arrayIdx < arr.length) {
-            linkHandler.process(arr[arrayIdx][0], arr[arrayIdx][1]);
-
-            console.log(arr[arrayIdx][0] + "started");
-
-            arrayIdx++;
-            setTimeout(makeOneOrder, 1000);
+function runWorker(items, linkHandler, cartAddress) {
+    var idx = 0;
+    var nextItem = function() {
+        if (idx < items.length) {
+            linkHandler.process(items[idx][0], items[idx][1]);
+            ++idx;
+            setTimeout(nextItem, 1000 * (Math.random() * 0.5 + 0.8));
+        } else {
+            chrome.tabs.create({ url: cartAddress, selected: false });
         }
     }
-    setTimeout(makeOneOrder, 1000);
+    setTimeout(nextItem, 1000 * (Math.random() * 0.5 + 0.8));
 }
 
 function processCells(cells) {
     serviceLinkHandlers = [];
-    linksCounts = {};
+    cellCounts = [];
 
     // count unique links
     for (var i = 0; i < cells.length; ++i) {
         var cellData = cells[i];
-        linksCounts[cellData] = 1 + (linksCounts[cellData] || 0);
+        cellCounts[cellData] = 1 + (cellCounts[cellData] || 0);
     }
 
     // get them to the array
-    var linksCountsArray = [];
-    for(var link in linksCounts) {
-        var serviceName = getServiceName(link);
-        if(serviceName in services) {
-            if (!(serviceName in linksCountsArray)) {
-                linksCountsArray[serviceName] = [];
+    var linkCounts = [];
+    for (var cell in cellCounts) {
+        var serviceName = getServiceName(cell);
+        if (serviceName in services) {
+            if (!(serviceName in linkCounts)) {
+                linkCounts[serviceName] = [];
                 serviceLinkHandlers[serviceName] = new services[serviceName].linkHandler();
             }
-            if(services[serviceName].hasCount) {
-                linksCountsArray[serviceName].push([link, linksCounts[link]])
+            if (services[serviceName].hasCount) {
+                linkCounts[serviceName].push([cell, cellCounts[cell]])
             } else {
-                for (var i = 0; i < linksCounts[link]; ++i)
-                    linksCountsArray[serviceName].push([link, 1]);
+                for (var i = 0; i < cellCounts[cell]; ++i)
+                    linkCounts[serviceName].push([cell, 1]);
             }
         }
     }
 
-    for (var serviceName in linksCountsArray) {
-        worker(linksCountsArray[serviceName], serviceLinkHandlers[serviceName]);
+    for (var serviceName in linkCounts) {
+        runWorker(linkCounts[serviceName], serviceLinkHandlers[serviceName], services[serviceName].cartAddress);
     }
 }
 
