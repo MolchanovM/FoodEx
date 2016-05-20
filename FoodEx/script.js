@@ -1,5 +1,23 @@
+function processCells(cells) {
+    serviceLinkHandlers = [];
+    for (var i = 0; i < cells.length; ++i) {
+        var serviceRegex = /http(?:s?):\/\/([^\/]+)\//;
+        var searchResults = serviceRegex.exec(cells[i]);
+        if (searchResults) {
+            serviceName = searchResults[1];
+            if (serviceName in services) {
+                if (!(serviceName in serviceLinkHandlers)) {
+                    serviceLinkHandlers[serviceName] = new services[serviceName].linkHandler();
+                }
+                // TODO: make intervals between requests. Preferably to make intervals only in different services.
+                serviceLinkHandlers[serviceName].process(cells[i]);
+            }
+        }
+    }
+}
+
 var getWorksheetInfo = function(url) {
-    var urlRegex = /.*docs\.google\.com\/spreadsheets\/d\/(.*)\/.*gid=(\d*).*/g;
+    var urlRegex = /.*docs\.google\.com\/(?:.*)spreadsheets\/d\/(.*)\/.*gid=(\d*).*/g;
     var searchResults = urlRegex.exec(url);
 
     var toReturn = {};
@@ -31,8 +49,8 @@ var cellsDataHandler = function(cellsXML) {
     for(var i = 0; i < cells.length; ++i) {
         cellsTexts.push(cells[i].innerText);
     }
-    
-    console.log(cellsTexts);
+
+    processCells(cellsTexts);
 }
 
 var workWithPage = function(spreadsheetId, pageId, tokenAPI) {
