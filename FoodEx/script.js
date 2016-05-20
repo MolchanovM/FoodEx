@@ -1,22 +1,60 @@
-function processCells(cells) {
-    serviceLinkHandlers = [];
-    for (var i = 0; i < cells.length; ++i) {
-        var serviceRegex = /http(?:s?):\/\/([^\/]+)\//;
-        var searchResults = serviceRegex.exec(cells[i]);
-        if (searchResults) {
-            serviceName = searchResults[1];
-            if (serviceName in services) {
-                if (!(serviceName in serviceLinkHandlers)) {
-                    serviceLinkHandlers[serviceName] = new services[serviceName].linkHandler();
-                }
-                // TODO: make intervals between requests. Preferably to make intervals only in different services.
-                serviceLinkHandlers[serviceName].process(cells[i]);
-            }
-        }
+function getServiceName(link) {
+    var serviceRegex = /http(?:s?):\/\/([^\/]+)\//;
+    var searchResults = serviceRegex.exec(link);
+    if(searchResults) {
+        return searchResults[1];
     }
 }
 
-var getWorksheetInfo = function(url) {
+function worker(arr, linkHandler) {
+    var arrayIdx = 0;
+    var makeOneOrder = function() {
+        if(arrayIdx < arr.length) {
+            linkHandler.process(arr[arrayIdx][0], arr[arrayIdx][1]);
+
+            console.log(arr[arrayIdx][0] + "started");
+
+            arrayIdx++;
+            setTimeout(makeOneOrder, 1000);
+        }
+    }
+    setTimeout(makeOneOrder, 1000);
+}
+
+function processCells(cells) {
+    serviceLinkHandlers = [];
+    linksCounts = {};
+
+    // count unique links
+    for (var i = 0; i < cells.length; ++i) {
+        var cellData = cells[i];
+        linksCounts[cellData] = 1 + (linksCounts[cellData] || 0);
+    }
+
+    // get them to the array
+    var linksCountsArray = [];
+    for(var link in linksCounts) {
+        var serviceName = getServiceName(link);
+        if(serviceName in services) {
+            if (!(serviceName in linksCountsArray)) {
+                linksCountsArray[serviceName] = [];
+                serviceLinkHandlers[serviceName] = new services[serviceName].linkHandler();
+            }
+            if(services[serviceName].hasCount) {
+                linksCountsArray[serviceName].push([link, linksCounts[link]])
+            } else {
+                for (var i = 0; i < linksCounts[link]; ++i)
+                    linksCountsArray[serviceName].push([link, 1]);
+            }
+        }
+    }
+
+    for (var serviceName in linksCountsArray) {
+        worker(linksCountsArray[serviceName], serviceLinkHandlers[serviceName]);
+    }
+}
+
+function getWorksheetInfo(url) {
     var urlRegex = /.*docs\.google\.com\/(?:.*)spreadsheets\/d\/(.*)\/.*gid=(\d*).*/g;
     var searchResults = urlRegex.exec(url);
 
@@ -31,7 +69,7 @@ var getWorksheetInfo = function(url) {
     return toReturn;
 }
 
-var getPageIdAPI = function(pageLink) {
+function getPageIdAPI(pageLink) {
     var regex = /.*\/private\/full\/(.*)/g;
     var searchResults = regex.exec(pageLink);
 
@@ -43,7 +81,7 @@ var getPageIdAPI = function(pageLink) {
     return pageId;
 }
 
-var cellsDataHandler = function(cellsXML) {
+function cellsDataHandler(cellsXML) {
     var cells = $(cellsXML).find('entry').find('content[type="text"]');
     var cellsTexts = [];
     for(var i = 0; i < cells.length; ++i) {
@@ -53,7 +91,7 @@ var cellsDataHandler = function(cellsXML) {
     processCells(cellsTexts);
 }
 
-var workWithPage = function(spreadsheetId, pageId, tokenAPI) {
+function workWithPage(spreadsheetId, pageId, tokenAPI) {
     var cellsDataApiCall = 'https://spreadsheets.google.com/feeds/cells/' +
                            spreadsheetId + '/' +
                            pageId + '/private/full' +
@@ -68,7 +106,7 @@ var workWithPage = function(spreadsheetId, pageId, tokenAPI) {
     });
 }
 
-var spreadsheetDataHandler = function(worksheetInfo, tokenAPI) {
+function spreadsheetDataHandler(worksheetInfo, tokenAPI) {
     // return curried function that knows worksheetInfo
     return function(spreadsheetXML) {
         $(spreadsheetXML).find('entry').each(function() {
@@ -82,7 +120,7 @@ var spreadsheetDataHandler = function(worksheetInfo, tokenAPI) {
     }
 }
 
-var workWithWorksheet = function(worksheetInfo) {
+function workWithWorksheet(worksheetInfo) {
     chrome.identity.getAuthToken({ 'interactive': true }, function(token) {
         var spreadsheetInfoApiCall = 'https://spreadsheets.google.com/feeds/worksheets/' +
                                      worksheetInfo.spreadsheetId +
@@ -98,7 +136,7 @@ var workWithWorksheet = function(worksheetInfo) {
     });
 }
 
-var addCurrentWorksheet = function() {
+function addCurrentWorksheet() {
     chrome.tabs.query({ currentWindow: true, active: true }, function(tabs) {
         var currentTab = tabs[0];
         var url = currentTab.url;
