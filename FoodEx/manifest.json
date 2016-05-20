@@ -11,7 +11,8 @@
         "identity",
     	"tabs",
         "http://www.zolotoruno.net/",
-        "http://pizza-kvartal.com/"
+        "http://pizza-kvartal.com/",
+        "https://osava.com.ua/"
     ],
 
     "content_security_policy": "script-src 'self' https://spreadsheets.google.com; object-src 'self'",

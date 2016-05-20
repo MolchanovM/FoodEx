@@ -27,6 +27,25 @@ services = {
                 ++this.map[id];
             };
         }
+    },
+
+    "osava.com.ua": {
+        cartAddress: "https://osava.com.ua/orders/all",
+        linkHandler: function() {
+            this.process = function(link, count = 1) {
+                $.get(link, function(data) {
+                    id = /button(?:\s+)class=\"buy\"(?:\s+)name=\"([0-9]+)\"/.exec(data)[1];
+                    $.post({
+                        type: "POST",
+                        url: "https://osava.com.ua/ajax/orders/incart",
+                        data: "id=" + id + "&amount=" + count + "&color=undefined&size=undefined",
+                        dataType: "json",
+                        cache: false,
+                    });                    
+                });
+            };
+        },
+        hasCount: true
     }
 
 }
