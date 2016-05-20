@@ -1,3 +1,21 @@
+var itemsDone = 0;
+var itemsTotal = 0;
+
+function updateUI() {
+    $('#labelDone').text(itemsDone);
+    $('#labelTotal').text(itemsTotal);
+
+    var percents = 0;
+    if(itemsTotal > 0) {
+        var percents = 100.0*itemsDone / itemsTotal;
+    }
+    $('#progress').width(percents + '%');
+
+    if(itemsDone === itemsTotal) {
+        $('#doneLabel').css('color', 'black');
+    }
+}
+
 function getServiceName(link) {
     var serviceRegex = /http(?:s?):\/\/([^\/]+)\//;
     var searchResults = serviceRegex.exec(link);
@@ -11,7 +29,9 @@ function runWorker(items, linkHandler, cartAddress) {
     var nextItem = function() {
         if (idx < items.length) {
             linkHandler.process(items[idx][0], items[idx][1]);
+            itemsDone += items[idx][1];
             ++idx;
+            updateUI();
             setTimeout(nextItem, 1000 * (Math.random() * 0.5 + 0.8));
         } else {
             chrome.tabs.create({ url: cartAddress, selected: false });
@@ -35,6 +55,7 @@ function processCells(cells) {
     for (var cell in cellCounts) {
         var serviceName = getServiceName(cell);
         if (serviceName in services) {
+            itemsTotal += cellCounts[cell];
             if (!(serviceName in linkCounts)) {
                 linkCounts[serviceName] = [];
                 serviceLinkHandlers[serviceName] = new services[serviceName].linkHandler();
@@ -144,6 +165,4 @@ function addCurrentWorksheet() {
     });
 };  
 
-$(document).ready(function() {
-    $("#clickButton").click(addCurrentWorksheet);
-});
+$(document).ready(addCurrentWorksheet);

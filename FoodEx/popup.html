@@ -1,12 +1,65 @@
 <html>
 	<head>
-		<title>Popup!</title>
+		<title>Food ordering</title>
+
+        <style>
+            html {
+                height: 200px;
+                width: 200px;
+                padding: 6px;
+            }
+
+            #bar {
+                position: relative;
+                width: 100%;
+                height: 30px;
+                background-color: grey;
+            }
+
+            #progress {
+                position: absolute;
+                width: 1%;
+                height: 100%;
+                background-color: green;
+            }
+
+            .label {
+                text-align: center;
+                line-height: 30px;
+                color: white;
+                margin-left: 50%;
+            }
+
+            #doneLabel {
+                text-align: center;
+                color: transparent;
+            }
+        </style>
 	</head>
 
 	<body>
-		<h1 id="clickButton">Click me!</h1>
+		<h3>The food is being ordered.</h3>
+        <h4>Please wait.</h4>
+        
+        <br/>
+        <br/>
+        
+        Progress:
+        <div id="bar">
+            <div id="progress">
+                <span class="label">
+                    <span id="labelDone">0</span>&nbsp;/&nbsp;<span id="labelTotal">0</span>
+                </span>
+            </div>
+        </div>
 
-        <script type="text/javascript" src="jquery-2.2.3.js"></script>
+        <br/>
+
+        <div id="doneLabel">
+            <h3>Done!</h3>
+        </div>
+
+        <script type="text/javascript" src="jquery-2.2.3.min.js"></script>
         <script type="text/javascript" src="services.js"></script>
 		<script type="text/javascript" src="script.js"></script>
 	</body>
